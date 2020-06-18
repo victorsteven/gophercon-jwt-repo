@@ -44,6 +44,7 @@ func main() {
 	var rd = auth.NewAuth(redisClient)
 	var tk = auth.NewToken()
 	var service = handlers.NewProfile(rd, tk)
+
 	var router = gin.Default()
 
 	router.POST("/login", service.Login)

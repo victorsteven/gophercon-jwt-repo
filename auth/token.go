@@ -27,7 +27,7 @@ var _ TokenInterface = &tokenservice{}
 
 func (t *tokenservice) CreateToken(userId string) (*TokenDetails, error) {
 	td := &TokenDetails{}
-	td.AtExpires = time.Now().Add(time.Minute * 3600).Unix()
+	td.AtExpires = time.Now().Add(time.Minute * 30).Unix() //expires after 30 min
 	td.TokenUuid = uuid.NewV4().String()
 
 	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
@@ -36,7 +36,6 @@ func (t *tokenservice) CreateToken(userId string) (*TokenDetails, error) {
 	var err error
 	//Creating Access Token
 	atClaims := jwt.MapClaims{}
-	atClaims["authorized"] = true
 	atClaims["access_uuid"] = td.TokenUuid
 	atClaims["user_id"] = userId
 	atClaims["exp"] = td.AtExpires
@@ -45,7 +44,11 @@ func (t *tokenservice) CreateToken(userId string) (*TokenDetails, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	//Creating Refresh Token
+	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
+	td.RefreshUuid = td.TokenUuid + "++" + userId
+
 	rtClaims := jwt.MapClaims{}
 	rtClaims["refresh_uuid"] = td.RefreshUuid
 	rtClaims["user_id"] = userId
@@ -60,7 +63,7 @@ func (t *tokenservice) CreateToken(userId string) (*TokenDetails, error) {
 }
 
 func TokenValid(r *http.Request) error {
-	token, err := VerifyToken(r)
+	token, err := verifyToken(r)
 	if err != nil {
 		return err
 	}
@@ -70,8 +73,8 @@ func TokenValid(r *http.Request) error {
 	return nil
 }
 
-func VerifyToken(r *http.Request) (*jwt.Token, error) {
-	tokenString := ExtractToken(r)
+func verifyToken(r *http.Request) (*jwt.Token, error) {
+	tokenString := extractToken(r)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -85,7 +88,7 @@ func VerifyToken(r *http.Request) (*jwt.Token, error) {
 }
 
 //get the token from the request body
-func ExtractToken(r *http.Request) string {
+func extractToken(r *http.Request) string {
 	bearToken := r.Header.Get("Authorization")
 	strArr := strings.Split(bearToken, " ")
 	if len(strArr) == 2 {
@@ -94,7 +97,7 @@ func ExtractToken(r *http.Request) string {
 	return ""
 }
 
-func (t *tokenservice) Extract(token *jwt.Token) (*AccessDetails, error) {
+func extract(token *jwt.Token) (*AccessDetails, error) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if ok && token.Valid {
@@ -113,11 +116,11 @@ func (t *tokenservice) Extract(token *jwt.Token) (*AccessDetails, error) {
 }
 
 func (t *tokenservice) ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
-	token, err := VerifyToken(r)
+	token, err := verifyToken(r)
 	if err != nil {
 		return nil, err
 	}
-	acc, err := t.Extract(token)
+	acc, err := extract(token)
 	if err != nil {
 		return nil, err
 	}

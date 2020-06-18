@@ -10,13 +10,13 @@ import (
 )
 
 // ProfileHandler struct
-type ProfileHandler struct {
+type profileHandler struct {
 	rd      auth.AuthInterface
 	tk      auth.TokenInterface
 }
 
-func NewProfile(rd auth.AuthInterface, tk auth.TokenInterface) *ProfileHandler {
-	return &ProfileHandler{rd, tk}
+func NewProfile(rd auth.AuthInterface, tk auth.TokenInterface) *profileHandler {
+	return &profileHandler{rd, tk}
 }
 
 type User struct {
@@ -37,7 +37,7 @@ type Todo struct {
 	Body string `json:"body"`
 }
 
-func (h *ProfileHandler) Login(c *gin.Context) {
+func (h *profileHandler) Login(c *gin.Context) {
 	var u User
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
@@ -64,7 +64,7 @@ func (h *ProfileHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, tokens)
 }
 
-func (h *ProfileHandler) Logout(c *gin.Context) {
+func (h *profileHandler) Logout(c *gin.Context) {
 	//If metadata is passed and the tokens valid, delete them from the redis store
 	metadata, _ := h.tk.ExtractTokenMetadata(c.Request)
 	if metadata != nil {
@@ -77,13 +77,12 @@ func (h *ProfileHandler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, "Successfully logged out")
 }
 
-func (h *ProfileHandler) CreateTodo(c *gin.Context) {
+func (h *profileHandler) CreateTodo(c *gin.Context) {
 	var td Todo
 	if err := c.ShouldBindJSON(&td); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "invalid json")
 		return
 	}
-	//Extract the access token metadata 
 	metadata, err := h.tk.ExtractTokenMetadata(c.Request)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, "unauthorized")
@@ -95,14 +94,14 @@ func (h *ProfileHandler) CreateTodo(c *gin.Context) {
 		return
 	}
 	td.UserID = userId
+
 	//you can proceed to save the  to a database
-	//but we will just return it to the caller:
 
 	c.JSON(http.StatusCreated, td)
 }
 
 
-func (h *ProfileHandler) Refresh(c *gin.Context) {
+func (h *profileHandler) Refresh(c *gin.Context) {
 	mapToken := map[string]string{}
 	if err := c.ShouldBindJSON(&mapToken); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, err.Error())

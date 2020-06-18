@@ -27,7 +27,6 @@ func NewAuth(client *redis.Client) *service {
 type AccessDetails struct {
 	TokenUuid string
 	UserId    string
-	Role      string
 }
 
 type TokenDetails struct {
