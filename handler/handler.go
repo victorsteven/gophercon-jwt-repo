@@ -56,6 +56,7 @@ func (h *profileHandler) Login(c *gin.Context) {
 	saveErr := h.rd.CreateAuth(user.ID, ts)
 	if saveErr != nil {
 		c.JSON(http.StatusUnprocessableEntity, saveErr.Error())
+		return
 	}
 	tokens := map[string]string{
 		"access_token":  ts.AccessToken,
